@@ -67,5 +67,3 @@ fn main() {
     }
     drop(listener);
 }
-
-// TODO ADD TESTS
