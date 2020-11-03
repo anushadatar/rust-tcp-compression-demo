@@ -1,7 +1,4 @@
-
-
-
-pub fn compress_message(input:Vec<u8> , output:&mut Vec<u8>) -> usize {
+pub fn compress_message(input: Vec<u8>, output: &mut Vec<u8>) -> usize {
     // TODO make this less obfuscated by at least a little
     println!("running compress data");
     let length_of_message = input.len();
@@ -12,7 +9,7 @@ pub fn compress_message(input:Vec<u8> , output:&mut Vec<u8>) -> usize {
     }
 
     for i in 0..length_of_message {
-        if i == length_of_message - 1 || input[i] != input[i+1] {
+        if i == length_of_message - 1 || input[i] != input[i + 1] {
             if count == 2 {
                 output[compress] = input[i];
                 compress += 1;
@@ -30,5 +27,5 @@ pub fn compress_message(input:Vec<u8> , output:&mut Vec<u8>) -> usize {
         count += 1
     }
     // TODO Get the compressed slice in the output.
-    return compress
-
+    return compress;
+}
