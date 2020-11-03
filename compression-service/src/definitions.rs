@@ -40,11 +40,10 @@ pub enum ResponseCode {
     UnknownError = 1,
     MessageTooLarge = 2,
     UnsupportedRequestType = 3,
+    // Custom response type documentation is in the README.
     MagicNumberIncorrect = 34,
     HeaderTooSmall = 35,
     CompressionFailed = 36,
     PayloadSizeMismatch = 37,
     PayloadInvalidCases = 38,
-    // TODO Add Implementer Defined Response Codes
-    // TODO Document these in the README as needed.
 }

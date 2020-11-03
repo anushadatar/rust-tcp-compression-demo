@@ -46,9 +46,15 @@ pub fn create_input_message(
         let mut payload = input[8..11].to_vec();
         output.set_payload(&mut payload);
     }
+    let total_length = definitions::HEADER_SIZE as u16 + payload_size;
+    stats_tracker.add_to_bytes_read(total_length as u32);
 }
 
-/// TODO DOCSTRING
+/// Create an output message by processing the input and populating the output.
+/// input: The parsed and serialized input message. 
+/// output: The generated output message.
+/// stats_tracker: The Tracker object associated with the server.
+/// Returns: Void, and it modifies the output message in place.
 pub fn create_output_message(
     input: &mut message::Message,
     output: &mut message::Message,
@@ -75,26 +81,36 @@ pub fn create_output_message(
     }
 }
 
-/// TODO
+/// Run the ping command, should simply print that it is processing.
+/// Returns: Void, and it prints to the console.
 pub fn ping_command() {
     println!("Processing ping command.");
 }
 
-/// TODO
+/// Unsupported request, prints to the console and modifies the output
+/// message response code with a note about it.
+/// message: The message object to modify and send back.
+/// Returns: Void, and it modifies the output message in place.
 pub fn unsupported_request(output: &mut message::Message) {
     println!("Unsupported request received.");
     output.set_code(definitions::ResponseCode::UnsupportedRequestType as u16);
 }
 
-/// TODO DOCSTRING
+/// Get statistics values associated with the server and modify the output
+/// with the response code and the specified statistics payload.
+/// stats_tracker: The Tracker object associated with the server.
+/// message: The message object to modify and send back.
+/// Returns: Void, and it modifies the output message in place.
 pub fn get_stats_command(stats_tracker: &mut stats::Tracker, output: &mut message::Message) {
     println!("Get stats command received.");
-    let mut payload_buffer = [0 as u8; 4];
+    let mut payload_buffer = [0 as u8; 9];
     stats_tracker.create_stats_payload(&mut payload_buffer);
     output.set_payload(&mut payload_buffer.to_vec());
 }
 
-/// TODO DOCSTRING
+/// Resets statistics value associated with the server.
+/// stats_tracker: The Tracker object associated with the server.
+/// /// Returns: Void, and it modifies the output message in place.
 pub fn reset_stats_command(stats_tracker: &mut stats::Tracker) {
     println!("Reset stats command received.");
     stats_tracker.reset_stats();
@@ -103,7 +119,10 @@ pub fn reset_stats_command(stats_tracker: &mut stats::Tracker) {
 /// Compress the input message using a simplified prefix encoding scheme, and
 /// then set the output payload value to the compressed buffer. Update the payload
 /// size and stats accordingly.
-/// TODO ADD PARAMS
+/// input: The parsed and serialized input message. 
+/// output: The generated output message.
+/// stats_tracker: The Tracker object associated with the server.
+/// Returns: Void, and it modifies the output message in place.
 pub fn compress_command(
     input: &mut message::Message,
     output: &mut message::Message,
@@ -114,10 +133,9 @@ pub fn compress_command(
     if output_size > 0 {
         println!("{}", output_size);
         output.set_payload(&mut output_message);
-        stats_tracker.add_to_bytes_compressed_input(input.payload_size() as usize);
-        stats_tracker.add_to_bytes_compressed_output(output_size);
+        stats_tracker.add_to_bytes_compressed_input(input.payload_size() as u32);
+        stats_tracker.add_to_bytes_compressed_output(output_size as u32);
         stats_tracker.update_compression_ratio();
-        stats_tracker.add_to_bytes_sent(output_size);
         output.set_payload_size(output_size as u16);
     } else {
         output.set_code(definitions::ResponseCode::CompressionFailed as u16);
@@ -126,8 +144,9 @@ pub fn compress_command(
 
 /// Validate that the header has the appropriate magic number as stored in definitions.
 /// If the number is incorrect, set the response code accordingly.
-/// input: Message struct containing the message received.
-/// output: Message struct containing the message to send out.
+/// input: The parsed and serialized input message. 
+/// output: The generated output message.
+/// Returns: Void, and it modifies the output message in place.
 pub fn validate_magic_number(input: &mut message::Message, output: &mut message::Message) {
     if input.magic_number() == definitions::MAGIC_NUMBER {
         output.set_code(definitions::ResponseCode::Ok as u16);
@@ -137,8 +156,10 @@ pub fn validate_magic_number(input: &mut message::Message, output: &mut message:
     output.set_magic_number(definitions::MAGIC_NUMBER);
 }
 
-/// Validate that the header has the appropriate magic number as stored in definitions.
-/// If the number is incorrect, set the response code accordingly.
+
+/// Validate that the payload size matches the specified value and that it does
+/// not exceed the prescribed maximum. Also ensure that it only contains lowercase
+/// ASCII characters.
 /// input: Message struct containing the message received.
 /// output: Message struct containing the message to send out.
 pub fn validate_payload(input: &mut message::Message, output: &mut message::Message) {
@@ -146,11 +167,25 @@ pub fn validate_payload(input: &mut message::Message, output: &mut message::Mess
         println!("Failed here");
         output.set_code(definitions::ResponseCode::PayloadSizeMismatch as u16);
     }
-    // TODO CHECK ALL LOWERCASE OR RESET AS WELL
+    if input.payload_size() > definitions::MAXIMUM_PAYLOAD_SIZE as u16 {
+        output.set_code(definitions::ResponseCode::MessageTooLarge as u16);
+    }
+    // A more efficient solution may validate while compressing, but here I will
+    // focus on separation of concerns instead.
+    if input.payload_size() > 0 {
+        if input.payload().as_slice()[..definitions::HEADER_SIZE].iter()
+        .all(|value: &u8| (*value as char).is_ascii_lowercase()) == false {
+            output.set_code(definitions::ResponseCode::PayloadInvalidCases as u16);            
+        }
+    }
+
+    // If we don't set an error code, then set the payload size appropriately.
     if output.code() == definitions::ResponseCode::Ok as u16 {
         output.set_payload_size(input.payload_size());
     }
 }
+
+
 
 #[cfg(test)]
 mod tests {
@@ -163,14 +198,9 @@ mod tests {
     #[test]
     fn test_ping() {
         let received_data = [
-            83u8,
-            84,
-            82,
-            89,
-            0,
-            0,
-            0,
-            definitions::RequestCode::Ping as u8,
+            83u8, 84, 82, 89, // magic number
+            0, 0, // payload size
+            0, definitions::RequestCode::Ping as u8, // request type
         ];
         let mut send_data = [0u8; 8];
         let mut stats_tracker = stats::Tracker::new();
@@ -182,21 +212,14 @@ mod tests {
         assert_eq!(&send_data[..8], &[83u8, 84, 82, 89, 0, 0, 0, 0]);
     }
 
-    // Todo
+    // Test that the compression function works as expected.
     #[test]
     fn test_compress() {
         let received_data = [
-            83u8,
-            84,
-            82,
-            89,
-            0,
-            3,
-            0,
-            definitions::RequestCode::Compress as u8,
-            88,
-            88,
-            88,
+            83u8, 84, 82, 89, // magic number
+            0, 3, // payload size
+            0, definitions::RequestCode::Compress as u8, // request type
+            88, 88, 88 // data
         ];
         let mut send_data = [0u8; 11];
         let mut stats_tracker = stats::Tracker::new();
@@ -209,22 +232,38 @@ mod tests {
         // Validate with known values
         assert_eq!(
             &send_data[..11],
-            &[
-                83u8,
-                84,
-                82,
-                89,
-                0,
-                3,
-                0,
-                definitions::RequestCode::Compress as u8,
-                51,
-                88
+            &[83u8, 84, 82, 89, 0, 3, 0, 
+              definitions::RequestCode::Compress as u8,
+              51,88
             ]
         );
-        // Validate update to the stats.
-        // TODO
+    }
+
+    #[test]
+    fn test_get_stats() {
+        let received_data = [
+            83u8, 84, 82, 89, // magic number
+            0, 0, // payload size
+            0, definitions::RequestCode::GetStats as u8, // request type
+        ];
+        let mut send_data = [0u8; 17];
+        let mut stats_tracker = stats::Tracker::new();
+        let mut received_message = message::Message::new();
+        let mut send_message = message::Message::new();
+        utils::create_input_message(&received_data, &mut received_message, &mut stats_tracker);
+        utils::create_output_message(&mut received_message, &mut send_message, &mut stats_tracker);
+        send_message.to_bytes(&mut send_data);
+        assert_eq!(
+            &send_data[..17],
+            &[
+                83u8, 84, 82, 89, 0, 9, 0, 0, //
+                0, 0, 0, 11, // Byte Received
+                0, 0, 0, 0, // Bytes Sent
+                0  // Compression ratio
+            ]
+        );
+        // TODO After this we should compress something and check again.
     }
 }
-
-// TODO ADD TESTS
+// TODO ADD RESET STATS
+// TODO ADD INVALID PAYLOAD
