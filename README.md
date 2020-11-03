@@ -10,17 +10,33 @@ Build with the script `build.sh` and run with the script `run.sh`. Run unit test
 `compression_service` directory and calling `cargo test`. 
 ## Architecture
 The `main.rs` script manages the incoming TCP stream by both listening for and sending messages and
-leverages using functions from within `utils.rs`. These functions create `Message` objects that 
+leverages using functions from within `utils.rs`. These functions create `Message` structs that contain
+header and payload information, and they execute on specified commands from there and populates a new
+`Message` struct in converts back down to bytes to respond with.
 ### Design Decisions
+A major design decision I made here was to use `Message` structs rather than directly modifying the input
+buffer associated with the data received over the stream. The reason that I made this call was because I
+wanted to prioritize readability and clarity of the program, even if it made the program less efficient. That
+being said, it would be perfectly reasonable to write a set of functions that directly modify the input
+buffer instead and provide a similar API-level user experience.
 ### Assumptions
 This implementation relies on many assumptions about the user, the workflow they employ, and the
 - The input message is somewhat well-formed, or if it is malformed it is
 because the message is completely invalid. For example, this implementation
-is not currently robust to if an input message has been shifted over.
+is not currently robust to if an input message has been shifted over by a bit.
 - The user knows about the constraints associated with this system; namely that
-it has a specific magic number, header format, 
+it has a specific magic number, header format, and payload format. While the system provides somewhat
+descriptive error information if the user does not know this is the case, this would limit their
+ability to meaningfully interact with the service.
 
 ### Custom Error Codes
+I defined the following custom error codes:
+| **Name**             	| **u16 Equivalent** 	| **Explanation**                                                      	|
+|----------------------	|--------------------	|----------------------------------------------------------------------	|
+| MagicNumberIncorrect 	| 34                 	| Follow entire Wall                                                   	|
+| PayloadInvalidCases  	| 35                 	| The payload contains values that are not lowercase ASCII characters. 	|
+| PayloadSizeMismatch  	| 36                 	| Payload size does not match size given in header.                    	|
+| CompressionFailed    	| 37                 	| Message compression failed to execute.                               	|
 
 ## Resources
 ### Libraries
