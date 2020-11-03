@@ -23,7 +23,7 @@ fn handle(mut stream: TcpStream) {
     // Message struct associated with the data to send over the TCP stream.
     let mut send_message = message::Message::new();
     while match stream.read(&mut received_data) {
-        Ok(size) => {
+        Ok(_size) => {
             // TODO This currently incorrectly will just add everything.
             stats_tracker.add_to_bytes_read(received_data.len());
             utils::create_input_message(&received_data, &mut received_message, &mut stats_tracker);

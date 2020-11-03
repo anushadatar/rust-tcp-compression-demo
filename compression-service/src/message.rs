@@ -60,41 +60,20 @@ impl Message {
     }
 
     /// TODO doc comment
-    pub fn validate_magic_number(&mut self) -> bool {
-        // Validate that the first two bits equal magic number
-        // TODO test
-        // TODO Add this validation funciton
-        if self.magic_number() == definitions::MAGIC_NUMBER {
-            true
-        } else {
-            false
-        }
-    }
-
-    /// TODO doc comment
-    pub fn validate_request_code(&mut self) -> bool {
-        // Validate that the first two bits equal magic number
-        // TODO test
-        // TODO Add this validation funciton
-        true
-    }
-
-    /// TODO doc comment
-    pub fn validate_payload_length(&mut self) -> bool {
-        // Validate that the first two bits equal magic number
-        // TODO test
-        // TODO Add this validation funciton
-        true
-    }
-
-    /// TODO doc comment
     pub fn to_bytes(&mut self, output: &mut [u8]) {
-        // TODO Make this more variable, maybe even just use offsets.
+        // TODO Make this more variable, maybe even just use Add the offset values here.self
         BigEndian::write_u32(&mut output[0..4], self.magic_number());
         BigEndian::write_u16(&mut output[4..6], self.payload_size());
         BigEndian::write_u16(&mut output[6..], self.code());
+        if self.payload_size() > 0 {
+            let mut current_offset = definitions::PAYLOAD_HEADER_OFFSET as usize;
+            let payload = self.payload();
+            for current_value in 0..self.payload_size() - 1 {
+                output[current_offset] = payload[current_value as usize];
+                current_offset += 1;
+            }        
         // TODO payload
+        }
     }
 }
-
 // TODO ADD TESTS
