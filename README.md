@@ -1,29 +1,50 @@
 # TCP Compression Service
-
 ## Build and Test
 ### Target Platform
 I conducted this program's development on a machine running Ubuntu 20.04 and Rust 2018.
+All of the libraries used in this program are available via cargo, so the only installation
+requirement is [Rust](https://www.rust-lang.org/tools/install). 
 ### Setup and Workflow
-• A shell script named build.sh that does all the necessary work to setup
-and/or build your project
-• A shell script named run.sh which starts your executable listening on port
-4000
+By default, this program runs on port 4000. 
+Build with the script `build.sh` and run with the script `run.sh`. Run unit tests by navigating into the
+`compression_service` directory and calling `cargo test`. 
 ## Architecture
-– A brief description of the inner workings of your code
-## Design Decisions
+The `main.rs` script manages the incoming TCP stream by both listening for and sending messages and
+leverages using functions from within `utils.rs`. These functions create `Message` objects that 
+### Design Decisions
 ### Assumptions
-– A description of any assumptions that you made while implementing
+This implementation relies on many assumptions about the user, the workflow they employ, and the
+- The input message is somewhat well-formed, or if it is malformed it is
+because the message is completely invalid. For example, this implementation
+is not currently robust to if an input message has been shifted over.
+- The user knows about the constraints associated with this system; namely that
+it has a specific magic number, header format, 
+
+### Custom Error Codes
 
 ## Resources
 ### Libraries
--  
-### Resources
-– A list of third party libraries or other projects which you used along
-with a very short description of why you used that particular library
-- As I'm still fairly new to Rust, I referenced [Rust By Example](https://doc.rust-lang.org/stable/rust-by-example/index.html) to gain context and solve problems.
+The only third-party library I used was [byteorder](https://docs.rs/byteorder/1.0.0/byteorder/index.html)
+to simplify encoding and decoding values in network byte order. The reason that I chose to use this library
+was because writing functions to handle encoding and decoding byte values is a straightforward but error-prone
+task, so I figured I ought to abstract it away to an external library. This library should be avaialble via cargo
+and should not require any additional installation to run and use.
+### Tutorials
+As I'm still fairly new to Rust (but discussed that this would be the best language for me to use here),
+I referenced a few tutorials fairly extensively, especially when I was debugging or trying to make my code
+as idiomatic as possible:
+- [The Book](https://doc.rust-lang.org/book/)
+- [Rust By Example](https://doc.rust-lang.org/stable/rust-by-example/index.html)
+- [The Rust Cookbook](https://rust-lang-nursery.github.io/rust-cookbook/)
+Note that if I made specific searches for implementation-level work, I've provided links to those references inline within the source code.
 
 ## Future Improvements
 If I had additional time and resources to dedicate to this project, I would extend this project in two major directions.
 
-- Error Checking and Testing: The testing present here does not necessarily encapsulate all use cases and potential opportunities for user error. For example, while there are some higher-level unit tests, I have minimal end-to-end integration testing support in place that confirms that the server 
-- Functionality: This daemon could support additional components of the DNS specification and more sophisticated user interface features (like supporting loading a configuration file for address redirection).
+- *Error Checking and Testing*: The testing present here does not necessarily encapsulate all use cases and potential opportunities
+for user error. For example, while there are some higher-level unit tests, I have no real end-to-end integration testing support
+in place that confirms that the server and client behave as expected. I also could add lower-level tests; for example, I could
+add unit tests for the compression algorithm itself to validate it against edge cases. I could also do more input 
+- *Functionality*: There are ways that I could further optimize most of the code her. For example, I could make the compression algorithm
+more efficient by directly modifying the vectors rather than using input slices, I could directly modify the message buffer
+rather than using a struct, and I could more closely evaluate my use of memory here.
