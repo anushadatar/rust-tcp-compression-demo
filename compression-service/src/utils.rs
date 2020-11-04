@@ -1,5 +1,5 @@
 /// Utility functions associated with the TCP Compresison services messages.
-use byteorder::{BigEndian, ReadBytesExt};
+use byteorder::{BigEndian, ByteOrder, ReadBytesExt};
 
 use crate::compress;
 use crate::definitions;
@@ -43,11 +43,10 @@ pub fn create_input_message(
         let mut payload = input[definitions::PAYLOAD_HEADER_OFFSET
             ..definitions::PAYLOAD_HEADER_OFFSET + payload_size as usize]
             .to_vec();
-        let mut payload = input[8..11].to_vec();
+        let mut payload = input[definitions::PAYLOAD_HEADER_OFFSET..definitions::PAYLOAD_HEADER_OFFSET+payload_size as usize].to_vec();
         output.set_payload(&mut payload);
     }
-    let total_length = definitions::HEADER_SIZE as u16 + payload_size;
-    print!("{}", total_length);
+    let total_length = 8 + payload_size;
     stats_tracker.add_to_bytes_read(total_length as u32);
 }
 
@@ -67,12 +66,12 @@ pub fn create_output_message(
 
     // Execute on the command assuming the header and payload are as specified.
     if output.code() == definitions::ResponseCode::Ok as u16 {
-        match definitions::RequestCode::u16_to_request_code(input.code()).unwrap() {
+        match definitions::RequestCode::u16_to_request_code(input.code()) {
             definitions::RequestCode::Ping => ping_command(),
             definitions::RequestCode::GetStats => get_stats_command(stats_tracker, output),
             definitions::RequestCode::ResetStats => reset_stats_command(stats_tracker),
             definitions::RequestCode::Compress => compress_command(input, output, stats_tracker),
-            _ => unsupported_request(output),
+            definitions::RequestCode::Error => unsupported_request(output),
         }
     }
     // Error messages should always have an empty payload.
@@ -105,8 +104,11 @@ pub fn unsupported_request(output: &mut message::Message) {
 pub fn get_stats_command(stats_tracker: &mut stats::Tracker, output: &mut message::Message) {
     println!("Get stats command received.");
     let mut payload_buffer = [0 as u8; 9];
-    stats_tracker.create_stats_payload(&mut payload_buffer);
-    output.set_payload_size(9);
+    println!("{}", stats_tracker.bytes_sent());    
+    BigEndian::write_u32(&mut payload_buffer[0..4], stats_tracker.bytes_read());
+    BigEndian::write_u32(&mut payload_buffer[5..9], stats_tracker.bytes_sent());
+    payload_buffer[0] = stats_tracker.compression_ratio();
+    output.set_payload_size(9 as u16);
     output.set_payload(&mut payload_buffer.to_vec());
 }
 
@@ -130,15 +132,14 @@ pub fn compress_command(
     output: &mut message::Message,
     stats_tracker: &mut stats::Tracker,
 ) {
-    let mut output_message = input.payload();
-    let output_size = compress::compress_message(input.payload(), &mut output_message);
-    if output_size > 0 {
-        println!("{}", output_size);
-        output.set_payload(&mut output_message);
+    let output_vector = compress::compress_message(input.payload());
+    if output_vector.is_some() {
+        let mut output_vector_value = output_vector.unwrap();
+        output.set_payload(&mut output_vector_value);
         stats_tracker.add_to_bytes_compressed_input(input.payload_size() as u32);
-        stats_tracker.add_to_bytes_compressed_output(output_size as u32);
+        stats_tracker.add_to_bytes_compressed_output(output_vector_value.len() as u32);
         stats_tracker.update_compression_ratio();
-        output.set_payload_size(output_size as u16);
+        output.set_payload_size(output_vector_value.len() as u16);
     } else {
         output.set_code(definitions::ResponseCode::CompressionFailed as u16);
     }
@@ -231,8 +232,8 @@ mod tests {
 
         // Validate with known values
         assert_eq!(
-            &send_data[..11],
-            &[83u8, 84, 82, 89, 0, 2, 0, 
+            &send_data[..10],
+            &[83u8, 84, 82, 89, 0, 2,
               0, 0,
               51, 114 
             ]
@@ -246,7 +247,7 @@ mod tests {
             0, 0, // payload size
             0, definitions::RequestCode::GetStats as u8, // request type
         ];
-        let mut send_data = [0u8; 17];
+        let mut send_data = [0u8; 18];
         let mut stats_tracker = stats::Tracker::new();
         let mut received_message = message::Message::new();
         let mut send_message = message::Message::new();
@@ -257,12 +258,11 @@ mod tests {
             &send_data[..17],
             &[
                 83u8, 84, 82, 89, 0, 9, 0, 0, //
-                0, 0, 0, 11, // Byte Received
+                0, 0, 0, 8, // Byte Received
                 0, 0, 0, 0, // Bytes Sent
                 0  // Compression ratio
             ]
         );
-        // TODO After this we should compress something and check again.
     }
 
     #[test]

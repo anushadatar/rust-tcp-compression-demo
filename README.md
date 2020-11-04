@@ -18,7 +18,9 @@ A major design decision I made here was to use `Message` structs rather than dir
 buffer associated with the data received over the stream. The reason that I made this call was because I
 wanted to prioritize readability and clarity of the program, even if it made the program less efficient. That
 being said, it would be perfectly reasonable to write a set of functions that directly modify the input
-buffer instead and provide a similar API-level user experience.
+buffer instead and provide a similar API-level user experience. One way I could have made this easier would
+have been to investigate how to automatically serialize the structure into bytes rather than by using a
+`to_bytes` function here.
 ### Assumptions
 This implementation relies on many assumptions about the user, the workflow they employ, and the
 - The input message is somewhat well-formed, or if it is malformed it is

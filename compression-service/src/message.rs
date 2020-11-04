@@ -43,7 +43,7 @@ impl Message {
     }
 
     /// Set the message's payload size
-    /// magic_number: u16 payload size to set
+    /// payload_size: u16 payload size to set
     pub fn set_payload_size(&mut self, payload_size: u16) {
         self.payload_size = payload_size;
     }
@@ -55,9 +55,9 @@ impl Message {
     }
 
     /// Set the message's payload size
-    /// magic_number: u16 code to set
-    pub fn set_code(&mut self, request_code: u16) {
-        self.code = request_code;
+    /// code: u16 code to set
+    pub fn set_code(&mut self, code: u16) {
+        self.code = code;
     }
 
     /// Get the message's payload
@@ -67,7 +67,7 @@ impl Message {
     }
 
     /// Set the message's payload.
-    /// magic_number: Vec<u8> payload
+    /// payload: Vec<u8> payload
     pub fn set_payload(&mut self, payload: &mut Vec<u8>) {
         self.payload = payload.to_vec();
     }
@@ -80,11 +80,10 @@ impl Message {
         BigEndian::write_u16(&mut output[definitions::PAYLOAD_SIZE_HEADER_OFFSET..definitions::CODE_HEADER_OFFSET], self.payload_size());
         BigEndian::write_u16(&mut output[definitions::CODE_HEADER_OFFSET..definitions::PAYLOAD_HEADER_OFFSET], self.code());
         if self.payload_size() > 0 {
-            let mut current_offset = definitions::PAYLOAD_HEADER_OFFSET + 1 as usize;
             let payload = self.payload();
+            let payload_slice = payload.as_slice();
             for current_value in 0..self.payload_size() {
-                output[current_offset] = payload[current_value as usize];
-                current_offset += 1;
+                output[definitions::PAYLOAD_HEADER_OFFSET + current_value as usize] = payload_slice[current_value as usize];
             }
         }
         return (8 + self.payload_size()) as usize;

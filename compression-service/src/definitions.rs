@@ -20,16 +20,17 @@ pub enum RequestCode {
     GetStats = 2,
     ResetStats = 3,
     Compress = 4,
+    Error = 0,
 }
 // Convert u16 values from headers into individual request codes.
 impl RequestCode {
-    pub fn u16_to_request_code(value: u16) -> Option<RequestCode> {
+    pub fn u16_to_request_code(value: u16) -> RequestCode {
         match value {
-            1 => Some(RequestCode::Ping),
-            2 => Some(RequestCode::GetStats),
-            3 => Some(RequestCode::ResetStats),
-            4 => Some(RequestCode::Compress),
-            _ => None,
+            1 => RequestCode::Ping,
+            2 => RequestCode::GetStats,
+            3 => RequestCode::ResetStats,
+            4 => RequestCode::Compress,
+            _ => RequestCode::Error,
         }
     }
 }
@@ -37,7 +38,8 @@ impl RequestCode {
 // Response code to include in header of message to send out.
 pub enum ResponseCode {
     Ok = 0,
-    UnknownError = 1,
+    // Currently not using the UnknownError flag here.
+    //    UnknownError = 1,
     MessageTooLarge = 2,
     UnsupportedRequestType = 3,
     // Custom response type documentation is in the README.

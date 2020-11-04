@@ -1,5 +1,4 @@
 /// Statistics structure and methods for TCP compression service.
-use byteorder::{BigEndian, ByteOrder};
 
 /// Tracker object that manages server metrics and fields.
 /// bytes_read : u32 value of total number of bytes read (including headers).
@@ -43,6 +42,7 @@ impl Tracker {
     pub fn compression_ratio(&self) -> u8 {
         return self.compression_ratio;
     }
+
     /// Get the trackers's bytes compressed input (how many bytes it has tried to compress).
     /// Returns: u32 bytes compressed input.
     pub fn bytes_compressed_input(&self) -> u32 {
@@ -128,9 +128,8 @@ impl Tracker {
                 self.bytes_compressed_output() as f64 / self.bytes_compressed_input() as f64;
             let ratio = (1f64 - new_ratio) * 100f64;
             self.set_compression_ratio((ratio as u8).into())
-        }
-        else {
-            self.set_compression_ratio(0);
+        } else {
+            self.set_compression_ratio(0 as u8);
         }
     }
 
@@ -142,15 +141,5 @@ impl Tracker {
         self.set_compression_ratio(0);
         self.set_bytes_compressed_input(0);
         self.set_bytes_compressed_output(0);
-    }
-
-    /// Create the statistics payload associated with responding to the
-    /// get_stats command.
-    /// payload: Buffer to populate with the statistics information.
-    /// Returns void, modifes payload buffer in place.
-    pub fn create_stats_payload(&mut self, payload: &mut [u8]) {
-        BigEndian::write_u32(&mut payload[0..4], self.bytes_read());
-        BigEndian::write_u32(&mut payload[4..8], self.bytes_sent());
-        payload[8] = self.compression_ratio();
     }
 }
