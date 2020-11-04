@@ -32,7 +32,7 @@ fn handle(mut stream: TcpStream) {
             );
             let output_size = send_message.to_bytes(&mut send_data);
             stats_tracker.add_to_bytes_sent(output_size as u32);
-            stream.write(&send_data).unwrap();
+            stream.write(&send_data[0..output_size]).unwrap();
             true
         }
         Err(_) => {
@@ -49,8 +49,8 @@ fn handle(mut stream: TcpStream) {
 /// Main method associated with TCP listener initialization.
 /// Used this tutorial as a starting point: https://riptutorial.com/rust/example/4404/a-simple-tcp-client-and-server-application--echo
 fn main() {
-    let listener = TcpListener::bind("0.0.0.0:3333").unwrap();
-    println!("Server listening on port 3333");
+    let listener = TcpListener::bind("0.0.0.0:4000").unwrap();
+    println!("Server listening on port 4000");
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
