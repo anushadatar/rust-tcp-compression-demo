@@ -47,6 +47,7 @@ pub fn create_input_message(
         output.set_payload(&mut payload);
     }
     let total_length = definitions::HEADER_SIZE as u16 + payload_size;
+    print!("{}", total_length);
     stats_tracker.add_to_bytes_read(total_length as u32);
 }
 
@@ -105,6 +106,7 @@ pub fn get_stats_command(stats_tracker: &mut stats::Tracker, output: &mut messag
     println!("Get stats command received.");
     let mut payload_buffer = [0 as u8; 9];
     stats_tracker.create_stats_payload(&mut payload_buffer);
+    output.set_payload_size(9);
     output.set_payload(&mut payload_buffer.to_vec());
 }
 
@@ -154,8 +156,7 @@ pub fn validate_magic_number(input: &mut message::Message, output: &mut message:
         output.set_code(definitions::ResponseCode::MagicNumberIncorrect as u16);
     }
     output.set_magic_number(definitions::MAGIC_NUMBER);
-    // TODO After this we should compress something and check again.
-}
+ }
 
 
 /// Validate that the payload size matches the specified value and that it does
@@ -284,5 +285,4 @@ mod tests {
     }
 
 }
-// TODO ADD RESET STATS
 // TODO ADD INVALID PAYLOAD and other erroneous payloasd as well
