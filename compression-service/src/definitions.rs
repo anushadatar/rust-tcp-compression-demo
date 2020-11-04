@@ -42,8 +42,7 @@ pub enum ResponseCode {
     UnsupportedRequestType = 3,
     // Custom response type documentation is in the README.
     MagicNumberIncorrect = 34,
-    HeaderTooSmall = 35,
-    CompressionFailed = 36,
-    PayloadSizeMismatch = 37,
-    PayloadInvalidCases = 38,
+    PayloadInvalidCases = 35,
+    PayloadSizeMismatch = 36,
+    CompressionFailed = 37,
 }

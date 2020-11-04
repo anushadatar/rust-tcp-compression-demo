@@ -76,14 +76,13 @@ impl Message {
     /// output: The array to write the message's bytes to.
     /// Returns: The size of the output actually written to.
     pub fn to_bytes(&mut self, output: &mut [u8]) -> usize {
-        // TODO Make this more variable, maybe even just use Add the offset values here.self
         BigEndian::write_u32(&mut output[definitions::MAGIC_NUMBER_HEADER_OFFSET..definitions::PAYLOAD_SIZE_HEADER_OFFSET], self.magic_number());
         BigEndian::write_u16(&mut output[definitions::PAYLOAD_SIZE_HEADER_OFFSET..definitions::CODE_HEADER_OFFSET], self.payload_size());
         BigEndian::write_u16(&mut output[definitions::CODE_HEADER_OFFSET..definitions::PAYLOAD_HEADER_OFFSET], self.code());
         if self.payload_size() > 0 {
             let mut current_offset = definitions::PAYLOAD_HEADER_OFFSET + 1 as usize;
             let payload = self.payload();
-            for current_value in 0..self.payload_size() - 1 {
+            for current_value in 0..self.payload_size() {
                 output[current_offset] = payload[current_value as usize];
                 current_offset += 1;
             }

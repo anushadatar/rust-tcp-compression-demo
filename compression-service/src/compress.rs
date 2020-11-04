@@ -1,3 +1,6 @@
+/// Compress a message associated 
+
+/// The  
 pub fn compress_message(input: Vec<u8>, output: &mut Vec<u8>) -> usize {
     let input_slice = input.as_slice();
     let output_slice = output.as_mut_slice();
@@ -27,6 +30,6 @@ pub fn compress_message(input: Vec<u8>, output: &mut Vec<u8>) -> usize {
         }
         total_count += 1
     }
-    *output = output_slice.to_vec();
+    output_slice.to_vec();
     return compressed_count;
 }

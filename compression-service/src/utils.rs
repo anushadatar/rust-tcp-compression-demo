@@ -154,6 +154,7 @@ pub fn validate_magic_number(input: &mut message::Message, output: &mut message:
         output.set_code(definitions::ResponseCode::MagicNumberIncorrect as u16);
     }
     output.set_magic_number(definitions::MAGIC_NUMBER);
+    // TODO After this we should compress something and check again.
 }
 
 
@@ -164,18 +165,18 @@ pub fn validate_magic_number(input: &mut message::Message, output: &mut message:
 /// output: Message struct containing the message to send out.
 pub fn validate_payload(input: &mut message::Message, output: &mut message::Message) {
     if input.payload_size() != input.payload().len() as u16 {
-        println!("Failed here");
         output.set_code(definitions::ResponseCode::PayloadSizeMismatch as u16);
     }
     if input.payload_size() > definitions::MAXIMUM_PAYLOAD_SIZE as u16 {
         output.set_code(definitions::ResponseCode::MessageTooLarge as u16);
     }
+
     // A more efficient solution may validate while compressing, but here I will
     // focus on separation of concerns instead.
     if input.payload_size() > 0 {
-        if input.payload().as_slice()[..definitions::HEADER_SIZE].iter()
-        .all(|value: &u8| (*value as char).is_ascii_lowercase()) == false {
-            output.set_code(definitions::ResponseCode::PayloadInvalidCases as u16);            
+        if input.payload().as_slice().iter()
+        .all(|value: &u8| (*value as char).is_ascii_lowercase() == false) {
+            output.set_code(definitions::ResponseCode::PayloadInvalidCases as u16); 
         }
     }
 
@@ -184,8 +185,6 @@ pub fn validate_payload(input: &mut message::Message, output: &mut message::Mess
         output.set_payload_size(input.payload_size());
     }
 }
-
-
 
 #[cfg(test)]
 mod tests {
@@ -219,7 +218,7 @@ mod tests {
             83u8, 84, 82, 89, // magic number
             0, 3, // payload size
             0, definitions::RequestCode::Compress as u8, // request type
-            88, 88, 88 // data
+            114, 114, 114 // data
         ];
         let mut send_data = [0u8; 11];
         let mut stats_tracker = stats::Tracker::new();
@@ -232,9 +231,9 @@ mod tests {
         // Validate with known values
         assert_eq!(
             &send_data[..11],
-            &[83u8, 84, 82, 89, 0, 3, 0, 
-              definitions::RequestCode::Compress as u8,
-              51,88
+            &[83u8, 84, 82, 89, 0, 2, 0, 
+              0, 0,
+              51, 114 
             ]
         );
     }
@@ -264,6 +263,26 @@ mod tests {
         );
         // TODO After this we should compress something and check again.
     }
+
+    #[test]
+    fn test_reset_stats() {
+        let received_data = [
+            83u8, 84, 82, 89, // magic number
+            0, 0, // payload size
+            0, definitions::RequestCode::ResetStats as u8, // request type
+        ];
+        let mut stats_tracker = stats::Tracker::new();
+        let mut received_message = message::Message::new();
+        let mut send_message = message::Message::new();
+        utils::create_input_message(&received_data, &mut received_message, &mut stats_tracker);
+        utils::create_output_message(&mut received_message, &mut send_message, &mut stats_tracker);
+        assert_eq!(stats_tracker.bytes_read(), 0);
+        assert_eq!(stats_tracker.bytes_sent(), 0);
+        assert_eq!(stats_tracker.compression_ratio(), 0);
+        assert_eq!(stats_tracker.bytes_compressed_input(), 0);
+        assert_eq!(stats_tracker.bytes_compressed_output(), 0);
+    }
+
 }
 // TODO ADD RESET STATS
-// TODO ADD INVALID PAYLOAD
+// TODO ADD INVALID PAYLOAD and other erroneous payloasd as well

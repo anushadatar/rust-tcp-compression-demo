@@ -24,17 +24,14 @@ fn handle(mut stream: TcpStream) {
     let mut send_message = message::Message::new();
     while match stream.read(&mut received_data) {
         Ok(_size) => {
-            // TODO This currently incorrectly will just add everything.
-            stats_tracker.add_to_bytes_read(received_data.len());
             utils::create_input_message(&received_data, &mut received_message, &mut stats_tracker);
             utils::create_output_message(
                 &mut received_message,
                 &mut send_message,
                 &mut stats_tracker,
             );
-            send_message.to_bytes(&mut send_data);
-            // TODO This currently incorrectly will just add everything.
-            stats_tracker.add_to_bytes_sent(send_data.len());
+            let output_size = send_message.to_bytes(&mut send_data);
+            stats_tracker.add_to_bytes_sent(output_size as u32);
             stream.write(&send_data).unwrap();
             true
         }
