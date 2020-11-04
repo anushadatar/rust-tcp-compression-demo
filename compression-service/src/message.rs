@@ -82,7 +82,7 @@ impl Message {
         if self.payload_size() > 0 {
             let mut current_offset = definitions::PAYLOAD_HEADER_OFFSET + 1 as usize;
             let payload = self.payload();
-            for current_value in 0..self.payload_size() - 1 {
+            for current_value in 0..self.payload_size() {
                 output[current_offset] = payload[current_value as usize];
                 current_offset += 1;
             }
