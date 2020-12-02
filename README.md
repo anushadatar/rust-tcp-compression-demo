@@ -20,9 +20,9 @@ wanted to prioritize readability and clarity of the program, even if it made the
 being said, it would be perfectly reasonable to write a set of functions that directly modify the input
 buffer instead and provide a similar API-level user experience. One way I could have made this easier would
 have been to investigate how to automatically serialize the structure into bytes rather than by using a
-`to_bytes` function here.
+`to_bytes` function and manually handling this functionality.
 ### Assumptions
-This implementation relies on many assumptions about the user, the workflow they employ, and the
+This implementation relies on many assumptions about the user and the workflow they employ.
 - The input message is somewhat well-formed, or if it is malformed it is
 because the message is completely invalid. For example, this implementation
 is not currently robust to if an input message has been shifted over by a bit.
