@@ -62,7 +62,7 @@ If I had additional time and resources to dedicate to this project, I would exte
 - **Error Checking and Testing**: The testing present here does not necessarily encapsulate all use cases and potential opportunities
 for user error. For example, while there are some higher-level unit tests, I have no real end-to-end integration testing support
 in place that confirms that the server and client behave as expected. I also could add lower-level tests; for example, I could
-add unit tests for the compression algorithm itself to validate it against edge cases. I could also do more input 
-- **Functionality**: There are ways that I could further optimize most of the code her. For example, I could make the compression algorithm
+add unit tests for the compression algorithm itself to validate it against edge cases. I could also do more input validation.
+- **Functionality**: There are ways that I could further optimize most of the code here. For example, I could make the compression algorithm
 more efficient by directly modifying the vectors rather than using input slices, I could directly modify the message buffer
-rather than using a struct, and I could more closely evaluate my use of memory here.
+rather than using a struct, and I could more closely evaluate my use of memory here to further streamline this program.
